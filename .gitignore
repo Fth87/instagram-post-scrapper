@@ -44,9 +44,9 @@ uploads/
 *.sqlite3
 
 # Ruff and Mypy Cache Directories
-.ruff_cache/
-.mypy_cache/
-.pytest_cache/
+.ruff_cache
+.mypy_cache
+.pytest_cache
 
 # OS-specific Files
 .DS_Store
