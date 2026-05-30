@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.api.endpoints import router as instagram_router
 from app.config import MEDIA_DIR
+from app.exceptions import setup_exception_handlers
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -12,6 +13,9 @@ app = FastAPI(
 
 # Mount the media directory to serve downloaded images locally via HTTP
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
+
+# Setup global exception handlers
+setup_exception_handlers(app)
 
 # Register routes
 app.include_router(instagram_router)

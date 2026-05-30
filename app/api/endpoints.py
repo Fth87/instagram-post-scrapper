@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Request, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from app.schemas.post import InstagramPostResponse
+from app.schemas.response import APIResponse
 from app.services.instagram import (
     InstagramClientManager,
     InstagramScraperService,
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/instagram", tags=["Instagram Scraper"])
 instagram_client = InstagramClientManager()
 instagram_service = InstagramScraperService(client_manager=instagram_client)
 
-@router.get("/scrape", response_model=list[InstagramPostResponse])
+@router.get("/scrape", response_model=APIResponse[list[InstagramPostResponse]])
 async def scrape_latest_posts(
     request: Request,
     username: str = Query(
@@ -49,7 +50,11 @@ async def scrape_latest_posts(
             limit=limit,
             base_url=base_url
         )
-        return posts
+        return APIResponse(
+            status="success",
+            message=f"Successfully scraped {len(posts)} posts from @{username}",
+            data=posts
+        )
         
     except InstagramRateLimitException as rle:
         # Catch custom Instagram rate limiting exception and respond with HTTP 429
@@ -60,7 +65,4 @@ async def scrape_latest_posts(
     except RuntimeError as re:
         # Connection or Instagram blocking issue
         raise HTTPException(status_code=503, detail=str(re))
-    except Exception as e:
-        # Generic internal errors
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
