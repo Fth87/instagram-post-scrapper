@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file if it exists
-load_dotenv(dotenv_path=BASE_DIR / ".env")
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 
 
 # Directory where scraped media (images) will be saved
