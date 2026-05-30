@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  scraper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: instagram_scraper_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent volume mapping to keep scraped media safe on the host machine
+      - ./media:/app/media
+    environment:
+      # Pass Gemini API key from host system env to container if needed in future
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: unless-stopped
