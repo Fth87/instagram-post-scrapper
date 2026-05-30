@@ -1,14 +1,23 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.api.endpoints import router as instagram_router
 from app.config import MEDIA_DIR
 from app.exceptions import setup_exception_handlers
+from app.database import init_db
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize SQLite database tables on startup
+    init_db()
+    yield
 
 # Initialize FastAPI App
 app = FastAPI(
     title="Instagram Scraper API",
-    description=" Fast API Clean, Simple to scrape public Instagram accounts",
-    version="1.0.0"
+    description="Clean, Simple, and Fast API to scrape public Instagram accounts, serve media locally, and prepare data for LLM pipelines.",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Mount the media directory to serve downloaded images locally via HTTP

@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Query, Request, HTTPException
+from fastapi import APIRouter, Query, Request, HTTPException, Depends
 from fastapi.concurrency import run_in_threadpool
+from sqlmodel import Session, select
 from app.schemas.post import InstagramPostResponse
 from app.schemas.response import APIResponse
+from app.database import get_db
+from app.models.raw_post import RawInstagramPost
 from app.services.instagram import (
     InstagramClientManager,
     InstagramScraperService,
@@ -28,7 +31,8 @@ async def scrape_latest_posts(
         ge=1, 
         le=20, 
         description="Number of latest posts to retrieve (max 20 to prevent rate-limiting)"
-    )
+    ),
+    db: Session = Depends(get_db)
 ):
     """
     Scrape the latest posts from a public Instagram account.
@@ -50,9 +54,40 @@ async def scrape_latest_posts(
             limit=limit,
             base_url=base_url
         )
+        
+        # Save scraped posts to the raw_instagram_posts staging database
+        new_saved_count = 0
+        duplicate_count = 0
+        
+        for post in posts:
+            # Check if post already exists in staging database to prevent duplicate entries
+            statement = select(RawInstagramPost).where(RawInstagramPost.instagram_shortcode == post["shortcode"])
+            existing_post = db.exec(statement).first()
+            
+            if not existing_post:
+                new_raw = RawInstagramPost(
+                    instagram_shortcode=post["shortcode"],
+                    raw_caption=post["caption"] or "",
+                    image_url=post["image_url"],
+                    is_processed=False
+                )
+                db.add(new_raw)
+                new_saved_count += 1
+            else:
+                duplicate_count += 1
+                
+        if new_saved_count > 0:
+            db.commit()
+            
+        message = (
+            f"Successfully scraped {len(posts)} posts from @{username}. "
+            f"Database status: {new_saved_count} new posts added to staging, "
+            f"{duplicate_count} already existed."
+        )
+        
         return APIResponse(
             status="success",
-            message=f"Successfully scraped {len(posts)} posts from @{username}",
+            message=message,
             data=posts
         )
         

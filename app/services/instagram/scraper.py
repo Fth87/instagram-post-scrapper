@@ -6,7 +6,7 @@ from instagrapi.exceptions import (  # type: ignore
     PleaseWaitFewMinutes,
     RateLimitError
 )
-from app.config import MEDIA_DIR
+from app.config import MEDIA_DIR, RESIDENTIAL_PROXY_URL
 from app.services.instagram.client import InstagramClientManager
 from app.services.instagram.exceptions import InstagramRateLimitException
 
@@ -81,18 +81,30 @@ class InstagramScraperService:
             if not local_filepath.exists():
                 try:
                     print(f"[*] Downloading post cover image: {media.code}...")
-                    temp_path = client.photo_download(
-                        media_pk=media.pk,
-                        folder=user_media_dir
-                    )
+                    # Determine the best direct image CDN URL from the media object
+                    image_cdn_url = None
+                    if media.thumbnail_url:
+                        image_cdn_url = str(media.thumbnail_url)
+                    elif media.resources and len(media.resources) > 0 and media.resources[0].thumbnail_url:
+                        image_cdn_url = str(media.resources[0].thumbnail_url)
                     
-                    # Rename the downloaded file to exactly code.jpg to stay consistent
-                    if temp_path.exists() and temp_path != local_filepath:
-                        if local_filepath.exists():
-                            local_filepath.unlink()
-                        temp_path.rename(local_filepath)
+                    if not image_cdn_url:
+                        raise ValueError("No valid image URL found in media object properties.")
                         
-                    print(f"[+] Downloaded and stored image as: {local_filepath.name}")
+                    # Download using direct HTTP requests (bypass buggy instagrapi public GQL)
+                    import requests
+                    proxies = {"http": RESIDENTIAL_PROXY_URL, "https": RESIDENTIAL_PROXY_URL} if RESIDENTIAL_PROXY_URL else None
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    }
+                    
+                    response = requests.get(image_cdn_url, headers=headers, proxies=proxies, timeout=20)
+                    response.raise_for_status()
+                    
+                    with open(local_filepath, "wb") as f:
+                        f.write(response.content)
+                        
+                    print(f"[+] Downloaded and stored image directly as: {local_filepath.name}")
                     
                     # Jitter Delay after downloading
                     self._jitter()
