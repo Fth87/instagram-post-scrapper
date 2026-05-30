@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.api.endpoints import router as instagram_router
+from app.api.competition import router as competition_router
 from app.config import MEDIA_DIR
 from app.exceptions import setup_exception_handlers
 from app.database import init_db
@@ -28,6 +29,7 @@ setup_exception_handlers(app)
 
 # Register routes
 app.include_router(instagram_router)
+app.include_router(competition_router, prefix="/api")
 
 @app.get("/", tags=["General"])
 async def root():

@@ -7,7 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18.4",
     "fastapi>=0.136.3",
+    "google-generativeai>=0.8.6",
     "instagrapi>=2.7.20",
+    "pillow>=12.2.0",
     "pycryptodomex>=3.23.0",
     "python-dotenv>=1.2.2",
     "sqlmodel>=0.0.38",
